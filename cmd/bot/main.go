@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
+	"github.com/ShishVi/bot/cmd/bot/internal/service/product"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 )
@@ -27,6 +29,7 @@ func main() {
 		Timeout: 60,
 	}
 
+	productService := product.NewService()
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
@@ -34,7 +37,9 @@ func main() {
 
 			switch update.Message.Command() {
 			case "help":
-				sendCommand(bot, update.Message)
+				helpCommand(bot, update.Message)
+			case "list":
+				listCommand(bot, update.Message, productService)
 			default:
 				defaultBehavior(bot, update.Message)
 			}
@@ -43,8 +48,22 @@ func main() {
 	}
 }
 
-func sendCommand(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, "Command help")
+func helpCommand(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, "/help - help\n"+"/list - list products")
+	bot.Send(msg)
+}
+
+func listCommand(bot *tgbotapi.BotAPI, inputMessage *tgbotapi.Message, productService *product.Service) {
+	outMessage := "Here all products \n\n"
+
+	products := productService.List()
+
+	for _, item := range products {
+		calories := strconv.Itoa(item.Calories)
+		outMessage += item.Title + " " + calories
+		outMessage += "\n"
+	}
+	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, outMessage)
 	bot.Send(msg)
 }
 
